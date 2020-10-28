@@ -1,5 +1,3 @@
-点击关注[公众号](#公众号)及时获取笔主最新更新文章，并可免费领取本文档配套的《Java面试突击》以及Java工程师必备学习资源。
-
 <!-- TOC -->
 
 - [JVM 垃圾回收](#jvm-垃圾回收)
@@ -105,13 +103,6 @@ Java 堆是垃圾收集器管理的主要区域，因此也被称作**GC 堆（G
 
 大多数情况下，对象在新生代中 eden 区分配。当 eden 区没有足够空间进行分配时，虚拟机将发起一次 Minor GC.下面我们来进行实际测试以下。
 
-在测试之前我们先来看看 **Minor GC 和 Full GC 有什么不同呢？**
-
-- **新生代 GC（Minor GC）**:指发生新生代的的垃圾收集动作，Minor GC 非常频繁，回收速度一般也比较快。
-- **老年代 GC（Major GC/Full GC）**:指发生在老年代的 GC，出现了 Major GC 经常会伴随至少一次的 Minor GC（并非绝对），Major GC 的速度一般会比 Minor GC 的慢 10 倍以上。
-
-> [issue#664 ](https://github.com/Snailclimb/JavaGuide/issues/664) :**[guang19](https://github.com/guang19)** 补充：个人在网上查阅相关资料的时候发现如题所说的观点。有的文章说 Major GC 与 Full GC 一样是属于对老年代的GC，也有的文章说 Major GC 是对整个堆区的GC，所以这点需要各位同学自行分辨 Major GC 语义。见: [知乎讨论](https://www.zhihu.com/question/41922036)
-
 **测试：**
 
 ```java
@@ -202,6 +193,27 @@ public class GCTest {
 >
 > **Sets the maximum tenuring threshold for use in adaptive GC sizing. The largest value is 15. The default value is 15 for the parallel (throughput) collector, and 6 for the CMS collector.默认晋升年龄并不都是15，这个是要区分垃圾收集器的，CMS就是6.**
 
+### 1.5主要进行 gc 的区域 
+
+周志明先生在《深入理解Java虚拟机》第二版中P92如是写道：
+
+> ~~*“老年代GC（Major GC/Full GC），指发生在老年代的GC……”*~~
+
+上面的说法已经在《深入理解Java虚拟机》第三版中被改正过来了。感谢R大的回答：
+
+![](https://my-blog-to-use.oss-cn-beijing.aliyuncs.com/2020-8/b48228c2-ac00-4668-a78f-6f221f8563b5.png)
+
+**总结：**
+
+针对HotSpot VM的实现，它里面的GC其实准确分类只有两大种：
+
+部分收集 (Partial GC)：
+
+- 新生代收集（Minor GC / Young GC）：只对新生代进行垃圾收集；
+- 老年代收集（Major GC / Old GC）：只对老年代进行垃圾收集。需要注意的是 Major GC 在有的语境中也用于指代整堆收集；
+- 混合收集（Mixed GC）：对整个新生代和部分老年代进行垃圾收集。
+
+整堆收集 (Full GC)：收集整个 Java 堆和方法区。
 
 ## 2 对象已经死亡？
 
@@ -288,7 +300,15 @@ JDK1.2 以后，Java 对引用的概念进行了扩充，将引用分为强引�
 
 运行时常量池主要回收的是废弃的常量。那么，我们如何判断一个常量是废弃常量呢？
 
-假如在常量池中存在字符串 "abc"，如果当前没有任何 String 对象引用该字符串常量的话，就说明常量 "abc" 就是废弃常量，如果这时发生内存回收的话而且有必要的话，"abc" 就会被系统清理出常量池。
+~~**JDK1.7 及之后版本的 JVM 已经将运行时常量池从方法区中移了出来，在 Java 堆（Heap）中开辟了一块区域存放运行时常量池。**~~
+
+> 修正([issue747](https://github.com/Snailclimb/JavaGuide/issues/747)，[reference](https://blog.csdn.net/q5706503/article/details/84640762))：
+>
+> 1. **JDK1.7之前运行时常量池逻辑包含字符串常量池存放在方法区, 此时hotspot虚拟机对方法区的实现为永久代**
+> 2. **JDK1.7 字符串常量池被从方法区拿到了堆中, 这里没有提到运行时常量池,也就是说字符串常量池被单独拿到堆,运行时常量池剩下的东西还在方法区, 也就是hotspot中的永久代** 。
+> 3. **JDK1.8 hotspot移除了永久代用元空间(Metaspace)取而代之, 这时候字符串常量池还在堆, 运行时常量池还在方法区, 只不过方法区的实现从永久代变成了元空间(Metaspace)**
+
+假如在字符串常量池中存在字符串 "abc"，如果当前没有任何 String 对象引用该字符串常量的话，就说明常量 "abc" 就是废弃常量，如果这时发生内存回收的话而且有必要的话，"abc" 就会被系统清理出常量池了。
 
 ### 2.6 如何判断一个类是无用的类
 
@@ -297,8 +317,8 @@ JDK1.2 以后，Java 对引用的概念进行了扩充，将引用分为强引�
 判定一个常量是否是“废弃常量”比较简单，而要判定一个类是否是“无用的类”的条件则相对苛刻许多。类需要同时满足下面 3 个条件才能算是 **“无用的类”** ：
 
 - 该类所有的实例都已经被回收，也就是 Java 堆中不存在该类的任何实例。
-- 加载该类的 ClassLoader 已经被回收。
-- 该类对应的 java.lang.Class 对象没有在任何地方被引用，无法在任何地方通过反射访问该类的方法。
+- 加载该类的 `ClassLoader` 已经被回收。
+- 该类对应的 `java.lang.Class` 对象没有在任何地方被引用，无法在任何地方通过反射访问该类的方法。
 
 虚拟机可以对满足上述 3 个条件的无用类进行回收，这里说的仅仅是“可以”，而并不是和对象一样不使用了就会必然被回收。
 
@@ -309,7 +329,7 @@ JDK1.2 以后，Java 对引用的概念进行了扩充，将引用分为强引�
 
 ### 3.1 标记-清除算法
 
-该算法分为“标记”和“清除”阶段：首先比较出所有需要回收的对象，在标记完成后统一回收掉所有被标记的对象。它是最基础的收集算法，后续的算法都是对其不足进行改进得到。这种垃圾收集算法会带来两个明显的问题：
+该算法分为“标记”和“清除”阶段：首先标记出所有不需要回收的对象，在标记完成后统一回收掉所有没有被标记的对象。它是最基础的收集算法，后续的算法都是对其不足进行改进得到。这种垃圾收集算法会带来两个明显的问题：
 
 1. **效率问题**
 2. **空间问题（标记清除后会产生大量不连续的碎片）**
@@ -320,9 +340,10 @@ JDK1.2 以后，Java 对引用的概念进行了扩充，将引用分为强引�
 
 为了解决效率问题，“复制”收集算法出现了。它可以将内存分为大小相同的两块，每次使用其中的一块。当这一块的内存使用完后，就将还存活的对象复制到另一块去，然后再把使用的空间一次清理掉。这样就使每次的内存回收都是对内存区间的一半进行回收。
 
-<img src="./pictures/jvm垃圾回收/90984624.png" alt="公众号" width="500px">
+![复制算法](./pictures/jvm垃圾回收/90984624.png)
 
 ### 3.3 标记-整理算法
+
 根据老年代的特点提出的一种标记算法，标记过程仍然与“标记-清除”算法一样，但后续步骤不是直接对可回收对象回收，而是让所有存活的对象向一端移动，然后直接清理掉端边界以外的内存。
 
 ![标记-整理算法 ](./pictures/jvm垃圾回收/94057049.png)
@@ -386,11 +407,21 @@ Parallel Scavenge 收集器也是使用复制算法的多线程收集器，它�
 
 ```
 
-**Parallel Scavenge 收集器关注点是吞吐量（高效率的利用 CPU）。CMS 等垃圾收集器的关注点更多的是用户线程的停顿时间（提高用户体验）。所谓吞吐量就是 CPU 中用于运行用户代码的时间与 CPU 总消耗时间的比值。** Parallel Scavenge 收集器提供了很多参数供用户找到最合适的停顿时间或最大吞吐量，如果对于收集器运作不太了解的话，手工优化存在困难的话可以选择把内存管理优化交给虚拟机去完成也是一个不错的选择。
+**Parallel Scavenge 收集器关注点是吞吐量（高效率的利用 CPU）。CMS 等垃圾收集器的关注点更多的是用户线程的停顿时间（提高用户体验）。所谓吞吐量就是 CPU 中用于运行用户代码的时间与 CPU 总消耗时间的比值。** Parallel Scavenge 收集器提供了很多参数供用户找到最合适的停顿时间或最大吞吐量，如果对于收集器运作不太了解，手工优化存在困难的时候，使用Parallel Scavenge收集器配合自适应调节策略，把内存管理优化交给虚拟机去完成也是一个不错的选择。
 
  **新生代采用复制算法，老年代采用标记-整理算法。**
 ![Parallel Scavenge 收集器 ](./pictures/jvm垃圾回收/parllel-scavenge收集器.png)
 
+**是JDK1.8默认收集器**  
+ 使用java -XX:+PrintCommandLineFlags -version命令查看
+
+```
+-XX:InitialHeapSize=262921408 -XX:MaxHeapSize=4206742528 -XX:+PrintCommandLineFlags -XX:+UseCompressedClassPointers -XX:+UseCompressedOops -XX:+UseParallelGC 
+java version "1.8.0_211"
+Java(TM) SE Runtime Environment (build 1.8.0_211-b12)
+Java HotSpot(TM) 64-Bit Server VM (build 25.211-b12, mixed mode)
+```
+JDK1.8默认使用的是Parallel Scavenge + Parallel Old，如果指定了-XX:+UseParallelGC参数，则默认指定了-XX:+UseParallelOldGC，可以使用-XX:-UseParallelOldGC来禁用该功能
 
 ### 4.4.Serial Old 收集器
 **Serial 收集器的老年代版本**，它同样是一个单线程收集器。它主要有两大用途：一种用途是在 JDK1.5 以及以前的版本中与 Parallel Scavenge 收集器搭配使用，另一种用途是作为 CMS 收集器的后备方案。
@@ -447,16 +478,6 @@ G1 收集器的运作大致分为以下几个步骤：
 - 《深入理解 Java 虚拟机：JVM 高级特性与最佳实践（第二版》
 - https://my.oschina.net/hosee/blog/644618
 - <https://docs.oracle.com/javase/specs/jvms/se8/html/index.html>
-
-## 公众号
-
-如果大家想要实时关注我更新的文章以及分享的干货的话，可以关注我的公众号。
-
-**《Java面试突击》:** 由本文档衍生的专为面试而生的《Java面试突击》V2.0 PDF 版本[公众号](#公众号)后台回复 **"Java面试突击"** 即可免费领取！
-
-**Java工程师必备学习资源:** 一些Java工程师常用学习资源[公众号](#公众号)后台回复关键字 **“1”** 即可免费无套路获取。 
-
-![我的公众号](https://my-blog-to-use.oss-cn-beijing.aliyuncs.com/2019-6/167598cd2e17b8ec.png)
 
 
 
