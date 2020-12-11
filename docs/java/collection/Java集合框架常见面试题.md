@@ -10,11 +10,6 @@
       - [1.1.3.3. Map](#1133-map)
     - [1.1.4. 如何选用集合?](#114-如何选用集合)
     - [1.1.5. 为什么要使用集合？](#115-为什么要使用集合)
-    - [1.1.6. Iterator 迭代器](#116-iterator-迭代器)
-      - [1.1.6.1. 迭代器 Iterator 是什么？](#1161-迭代器-iterator-是什么)
-      - [1.1.6.2. 迭代器 Iterator 有啥用？](#1162-迭代器-iterator-有啥用)
-      - [1.1.6.3. 如何使用？](#1163-如何使用)
-    - [1.1.7. 有哪些集合是线程不安全的？怎么解决呢？](#117-有哪些集合是线程不安全的怎么解决呢)
   - [1.2. Collection 子接口之 List](#12-collection-子接口之-list)
     - [1.2.1. Arraylist 和 Vector 的区别?](#121-arraylist-和-vector-的区别)
     - [1.2.2. Arraylist 与 LinkedList 区别?](#122-arraylist-与-linkedlist-区别)
@@ -46,13 +41,6 @@
     - [1.5.1. 排序操作](#151-排序操作)
     - [1.5.2. 查找,替换操作](#152-查找替换操作)
     - [1.5.3. 同步控制](#153-同步控制)
-  - [1.6. 其他重要问题](#16-其他重要问题)
-    - [1.6.1. 什么是快速失败(fail-fast)？](#161-什么是快速失败fail-fast)
-    - [1.6.2. 什么是安全失败(fail-safe)呢？](#162-什么是安全失败fail-safe呢)
-    - [1.6.3. Arrays.asList()避坑指南](#163-arraysaslist避坑指南)
-      - [1.6.3.1. 简介](#1631-简介)
-      - [1.6.3.2. 《阿里巴巴 Java 开发手册》对其的描述](#1632-阿里巴巴-java-开发手册对其的描述)
-      - [1.6.3.3. 使用时的注意事项总结](#1633-使用时的注意事项总结)
 
 <!-- /TOC -->
 
@@ -95,9 +83,9 @@
 
 #### 1.1.3.3. Map
 
-- `HashMap`： JDK1.8 之前 HashMap 由数组+链表组成的，数组是 HashMap 的主体，链表则是主要为了解决哈希冲突而存在的（“拉链法”解决冲突）。JDK1.8 以后在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树）时，将链表转化为红黑树，以减少搜索时间
+- `HashMap`： JDK1.8 之前 `HashMap` 由数组+链表组成的，数组是 `HashMap` 的主体，链表则是主要为了解决哈希冲突而存在的（“拉链法”解决冲突）。JDK1.8 以后在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树）时，将链表转化为红黑树，以减少搜索时间
 - `LinkedHashMap`： `LinkedHashMap` 继承自 `HashMap`，所以它的底层仍然是基于拉链式散列结构即由数组和链表或红黑树组成。另外，`LinkedHashMap` 在上面结构的基础上，增加了一条双向链表，使得上面的结构可以保持键值对的插入顺序。同时通过对链表进行相应的操作，实现了访问顺序相关逻辑。详细可以查看：[《LinkedHashMap 源码详细分析（JDK1.8）》](https://www.imooc.com/article/22931)
-- `Hashtable`： 数组+链表组成的，数组是 HashMap 的主体，链表则是主要为了解决哈希冲突而存在的
+- `Hashtable`： 数组+链表组成的，数组是 `HashMap` 的主体，链表则是主要为了解决哈希冲突而存在的
 - `TreeMap`： 红黑树（自平衡的排序二叉树）
 
 ### 1.1.4. 如何选用集合?
@@ -112,65 +100,14 @@
 因为我们在实际开发中，存储的数据的类型是多种多样的，于是，就出现了“集合”，集合同样也是用来存储多个数据的。
 
 数组的缺点是一旦声明之后，长度就不可变了；同时，声明数组时的数据类型也决定了该数组存储的数据的类型；而且，数组存储的数据是有序的、可重复的，特点单一。
-但是集合提高了数据存储的灵活性，Java 集合不仅可以用来存储不同类型不同数量的对象，还可以保存具有映射关系的数据
-
-### 1.1.6. Iterator 迭代器
-
-#### 1.1.6.1. 迭代器 Iterator 是什么？
-
-```java
-public interface Iterator<E> {
-    //集合中是否还有元素
-    boolean hasNext();
-    //获得集合中的下一个元素
-    E next();
-    ......
-}
-```
-
-`Iterator` 对象称为迭代器（设计模式的一种），迭代器可以对集合进行遍历，但每一个集合内部的数据结构可能是不尽相同的，所以每一个集合存和取都很可能是不一样的，虽然我们可以人为地在每一个类中定义 `hasNext()` 和 `next()` 方法，但这样做会让整个集合体系过于臃肿。于是就有了迭代器。
-
-迭代器是将这样的方法抽取出接口，然后在每个类的内部，定义自己迭代方式，这样做就规定了整个集合体系的遍历方式都是 `hasNext()`和`next()`方法，使用者不用管怎么实现的，会用即可。迭代器的定义为：提供一种方法访问一个容器对象中各个元素，而又不需要暴露该对象的内部细节。
-
-#### 1.1.6.2. 迭代器 Iterator 有啥用？
-
-`Iterator` 主要是用来遍历集合用的，它的特点是更加安全，因为它可以确保，在当前遍历的集合元素被更改的时候，就会抛出 `ConcurrentModificationException` 异常。
-
-#### 1.1.6.3. 如何使用？
-
-我们通过使用迭代器来遍历 `HashMap`，演示一下 迭代器 Iterator 的使用。
-
-```java
-
-Map<Integer, String> map = new HashMap();
-map.put(1, "Java");
-map.put(2, "C++");
-map.put(3, "PHP");
-Iterator<Map.Entry<Integer, String>> iterator = map.entrySet().iterator();
-while (iterator.hasNext()) {
-  Map.Entry<Integer, String> entry = iterator.next();
-  System.out.println(entry.getKey() + entry.getValue());
-}
-```
-
-### 1.1.7. 有哪些集合是线程不安全的？怎么解决呢？
-
-我们常用的 `Arraylist` ,`LinkedList`,`Hashmap`,`HashSet`,`TreeSet`,`TreeMap`，`PriorityQueue` 都不是线程安全的。解决办法很简单，可以使用线程安全的集合来代替。
-
-如果你要使用线程安全的集合的话， `java.util.concurrent` 包中提供了很多并发容器供你使用：
-
-1. `ConcurrentHashMap`: 可以看作是线程安全的 `HashMap`
-2. `CopyOnWriteArrayList`:可以看作是线程安全的 `ArrayList`，在读多写少的场合性能非常好，远远好于 `Vector`.
-3. `ConcurrentLinkedQueue`:高效的并发队列，使用链表实现。可以看做一个线程安全的 `LinkedList`，这是一个非阻塞队列。
-4. `BlockingQueue`: 这是一个接口，JDK 内部通过链表、数组等方式实现了这个接口。表示阻塞队列，非常适合用于作为数据共享的通道。
-5. `ConcurrentSkipListMap` :跳表的实现。这是一个`Map`，使用跳表的数据结构进行快速查找。
+但是集合提高了数据存储的灵活性，Java 集合不仅可以用来存储不同类型不同数量的对象，还可以保存具有映射关系的数据。
 
 ## 1.2. Collection 子接口之 List
 
 ### 1.2.1. Arraylist 和 Vector 的区别?
 
-1. ArrayList 是 List 的主要实现类，底层使用 Object[ ]存储，适用于频繁的查找工作，线程不安全 ；
-2. Vector 是 List 的古老实现类，底层使用 Object[ ]存储，线程安全的。
+- `ArrayList` 是 `List` 的主要实现类，底层使用 `Object[ ]`存储，适用于频繁的查找工作，线程不安全 ；
+- `Vector` 是 `List` 的古老实现类，底层使用` Object[ ]` 存储，线程安全的。
 
 ### 1.2.2. Arraylist 与 LinkedList 区别?
 
@@ -217,7 +154,7 @@ public interface RandomAccess {
 
 ### 1.2.3. 说一说 ArrayList 的扩容机制吧
 
-详见笔主的这篇文章:[通过源码一步一步分析 ArrayList 扩容机制](https://github.com/Snailclimb/JavaGuide/blob/master/docs/java/collection/ArrayList-Grow.md)
+详见笔主的这篇文章:[通过源码一步一步分析 ArrayList 扩容机制](https://snailclimb.gitee.io/javaguide/#/docs/java/collection/ArrayList%E6%BA%90%E7%A0%81+%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E5%88%86%E6%9E%90)
 
 ## 1.3. Collection 子接口之 Set
 
@@ -358,23 +295,23 @@ Output：
 
 ### 1.3.3. 比较 HashSet、LinkedHashSet 和 TreeSet 三者的异同
 
-HashSet 是 Set 接口的主要实现类 ，HashSet 的底层是 HashMap，线程不安全的，可以存储 null 值；
+`HashSet` 是 `Set` 接口的主要实现类 ，`HashSet` 的底层是 `HashMap`，线程不安全的，可以存储 null 值；
 
-LinkedHashSet 是 HashSet 的子类，能够按照添加的顺序遍历；
+`LinkedHashSet` 是 `HashSet` 的子类，能够按照添加的顺序遍历；
 
-TreeSet 底层使用红黑树，能够按照添加元素的顺序进行遍历，排序的方式有自然排序和定制排序。
+`TreeSet` 底层使用红黑树，能够按照添加元素的顺序进行遍历，排序的方式有自然排序和定制排序。
 
 ## 1.4. Map 接口
 
 ### 1.4.1. HashMap 和 Hashtable 的区别
 
-1. **线程是否安全：** HashMap 是非线程安全的，HashTable 是线程安全的,因为 HashTable 内部的方法基本都经过`synchronized` 修饰。（如果你要保证线程安全的话就使用 ConcurrentHashMap 吧！）；
-2. **效率：** 因为线程安全的问题，HashMap 要比 HashTable 效率高一点。另外，HashTable 基本被淘汰，不要在代码中使用它；
-3. **对 Null key 和 Null value 的支持：** HashMap 可以存储 null 的 key 和 value，但 null 作为键只能有一个，null 作为值可以有多个；HashTable 不允许有 null 键和 null 值，否则会抛出 NullPointerException。
-4. **初始容量大小和每次扩充容量大小的不同 ：** ① 创建时如果不指定容量初始值，Hashtable 默认的初始大小为 11，之后每次扩充，容量变为原来的 2n+1。HashMap 默认的初始化大小为 16。之后每次扩充，容量变为原来的 2 倍。② 创建时如果给定了容量初始值，那么 Hashtable 会直接使用你给定的大小，而 HashMap 会将其扩充为 2 的幂次方大小（HashMap 中的`tableSizeFor()`方法保证，下面给出了源代码）。也就是说 HashMap 总是使用 2 的幂作为哈希表的大小,后面会介绍到为什么是 2 的幂次方。
-5. **底层数据结构：** JDK1.8 以后的 HashMap 在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树）时，将链表转化为红黑树，以减少搜索时间。Hashtable 没有这样的机制。
+1. **线程是否安全：** `HashMap` 是非线程安全的，`HashTable` 是线程安全的,因为 `HashTable` 内部的方法基本都经过`synchronized` 修饰。（如果你要保证线程安全的话就使用 `ConcurrentHashMap` 吧！）；
+2. **效率：** 因为线程安全的问题，`HashMap` 要比 `HashTable` 效率高一点。另外，`HashTable` 基本被淘汰，不要在代码中使用它；
+3. **对 Null key 和 Null value 的支持：** `HashMap` 可以存储 null 的 key 和 value，但 null 作为键只能有一个，null 作为值可以有多个；HashTable 不允许有 null 键和 null 值，否则会抛出 `NullPointerException`。
+4. **初始容量大小和每次扩充容量大小的不同 ：** ① 创建时如果不指定容量初始值，`Hashtable` 默认的初始大小为 11，之后每次扩充，容量变为原来的 2n+1。`HashMap` 默认的初始化大小为 16。之后每次扩充，容量变为原来的 2 倍。② 创建时如果给定了容量初始值，那么 Hashtable 会直接使用你给定的大小，而 `HashMap` 会将其扩充为 2 的幂次方大小（`HashMap` 中的`tableSizeFor()`方法保证，下面给出了源代码）。也就是说 `HashMap` 总是使用 2 的幂作为哈希表的大小,后面会介绍到为什么是 2 的幂次方。
+5. **底层数据结构：** JDK1.8 以后的 `HashMap` 在解决哈希冲突时有了较大的变化，当链表长度大于阈值（默认为 8）（将链表转换成红黑树前会判断，如果当前数组的长度小于 64，那么会选择先进行数组扩容，而不是转换为红黑树）时，将链表转化为红黑树，以减少搜索时间。Hashtable 没有这样的机制。
 
-**HashMap 中带有初始容量的构造函数：**
+**`HashMap` 中带有初始容量的构造函数：**
 
 ```java
     public HashMap(int initialCapacity, float loadFactor) {
@@ -394,7 +331,7 @@ TreeSet 底层使用红黑树，能够按照添加元素的顺序进行遍历，
     }
 ```
 
-下面这个方法保证了 HashMap 总是使用 2 的幂作为哈希表的大小。
+下面这个方法保证了 `HashMap` 总是使用 2 的幂作为哈希表的大小。
 
 ```java
     /**
@@ -413,14 +350,14 @@ TreeSet 底层使用红黑树，能够按照添加元素的顺序进行遍历，
 
 ### 1.4.2. HashMap 和 HashSet 区别
 
-如果你看过 `HashSet` 源码的话就应该知道：HashSet 底层就是基于 HashMap 实现的。（HashSet 的源码非常非常少，因为除了 `clone()`、`writeObject()`、`readObject()`是 HashSet 自己不得不实现之外，其他方法都是直接调用 HashMap 中的方法。
+如果你看过 `HashSet` 源码的话就应该知道：`HashSet` 底层就是基于 `HashMap` 实现的。（`HashSet` 的源码非常非常少，因为除了 `clone()`、`writeObject()`、`readObject()`是 `HashSet` 自己不得不实现之外，其他方法都是直接调用 `HashMap` 中的方法。
 
-|              HashMap               |                           HashSet                            |
-| :--------------------------------: | :----------------------------------------------------------: |
-|          实现了 Map 接口           |                        实现 Set 接口                         |
-|             存储键值对             |                          仅存储对象                          |
-|   调用 `put()`向 map 中添加元素    |              调用 `add()`方法向 Set 中添加元素               |
-| HashMap 使用键（Key）计算 Hashcode | HashSet 使用成员对象来计算 hashcode 值，对于两个对象来说 hashcode 可能相同，所以 equals()方法用来判断对象的相等性， |
+|               `HashMap`                |                          `HashSet`                           |
+| :------------------------------------: | :----------------------------------------------------------: |
+|           实现了 `Map` 接口            |                       实现 `Set` 接口                        |
+|               存储键值对               |                          仅存储对象                          |
+|     调用 `put()`向 map 中添加元素      |             调用 `add()`方法向 `Set` 中添加元素              |
+| `HashMap` 使用键（Key）计算 `hashcode` | `HashSet` 使用成员对象来计算 `hashcode` 值，对于两个对象来说 `hashcode` 可能相同，所以` equals()`方法用来判断对象的相等性 |
 
 ### 1.4.3. HashMap 和 TreeMap 区别
 
@@ -492,15 +429,17 @@ TreeMap<Person, String> treeMap = new TreeMap<>((person1, person2) -> {
 
 ### 1.4.4. HashSet 如何检查重复
 
-当你把对象加入`HashSet`时，HashSet 会先计算对象的`hashcode`值来判断对象加入的位置，同时也会与其他加入的对象的 hashcode 值作比较，如果没有相符的 hashcode，HashSet 会假设对象没有重复出现。但是如果发现有相同 hashcode 值的对象，这时会调用`equals()`方法来检查 hashcode 相等的对象是否真的相同。如果两者相同，HashSet 就不会让加入操作成功。（摘自我的 Java 启蒙书《Head fist java》第二版）
+以下内容摘自我的 Java 启蒙书《Head fist java》第二版：
 
-**hashCode()与 equals()的相关规定：**
+当你把对象加入`HashSet`时，`HashSet` 会先计算对象的`hashcode`值来判断对象加入的位置，同时也会与其他加入的对象的 `hashcode` 值作比较，如果没有相符的 `hashcode`，`HashSet` 会假设对象没有重复出现。但是如果发现有相同 `hashcode` 值的对象，这时会调用`equals()`方法来检查 `hashcode` 相等的对象是否真的相同。如果两者相同，`HashSet` 就不会让加入操作成功。
 
-1. 如果两个对象相等，则 hashcode 一定也是相同的
-2. 两个对象相等,对两个 equals 方法返回 true
-3. 两个对象有相同的 hashcode 值，它们也不一定是相等的
-4. 综上，equals 方法被覆盖过，则 hashCode 方法也必须被覆盖
-5. hashCode()的默认行为是对堆上的对象产生独特值。如果没有重写 hashCode()，则该 class 的两个对象无论如何都不会相等（即使这两个对象指向相同的数据）。
+**`hashCode()`与 `equals()` 的相关规定：**
+
+1. 如果两个对象相等，则 `hashcode` 一定也是相同的
+2. 两个对象相等,对两个 `equals()` 方法返回 true
+3. 两个对象有相同的 `hashcode` 值，它们也不一定是相等的
+4. 综上，`equals()` 方法被覆盖过，则 `hashCode()` 方法也必须被覆盖
+5. `hashCode() `的默认行为是对堆上的对象产生独特值。如果没有重写 `hashCode()`，则该 class 的两个对象无论如何都不会相等（即使这两个对象指向相同的数据）。
 
 **==与 equals 的区别**
 
@@ -579,10 +518,10 @@ static int hash(int h) {
 
 ### 1.4.9. ConcurrentHashMap 和 Hashtable 的区别
 
-ConcurrentHashMap 和 Hashtable 的区别主要体现在实现线程安全的方式上不同。
+`ConcurrentHashMap` 和 `Hashtable` 的区别主要体现在实现线程安全的方式上不同。
 
-- **底层数据结构：** JDK1.7 的 ConcurrentHashMap 底层采用 **分段的数组+链表** 实现，JDK1.8 采用的数据结构跟 HashMap1.8 的结构一样，数组+链表/红黑二叉树。Hashtable 和 JDK1.8 之前的 HashMap 的底层数据结构类似都是采用 **数组+链表** 的形式，数组是 HashMap 的主体，链表则是主要为了解决哈希冲突而存在的；
-- **实现线程安全的方式（重要）：** ① **在 JDK1.7 的时候，ConcurrentHashMap（分段锁）** 对整个桶数组进行了分割分段(Segment)，每一把锁只锁容器其中一部分数据，多线程访问容器里不同数据段的数据，就不会存在锁竞争，提高并发访问率。 **到了 JDK1.8 的时候已经摒弃了 Segment 的概念，而是直接用 Node 数组+链表+红黑树的数据结构来实现，并发控制使用 synchronized 和 CAS 来操作。（JDK1.6 以后 对 synchronized 锁做了很多优化）** 整个看起来就像是优化过且线程安全的 HashMap，虽然在 JDK1.8 中还能看到 Segment 的数据结构，但是已经简化了属性，只是为了兼容旧版本；② **Hashtable(同一把锁)** :使用 synchronized 来保证线程安全，效率非常低下。当一个线程访问同步方法时，其他线程也访问同步方法，可能会进入阻塞或轮询状态，如使用 put 添加元素，另一个线程不能使用 put 添加元素，也不能使用 get，竞争会越来越激烈效率越低。
+- **底层数据结构：** JDK1.7 的 `ConcurrentHashMap` 底层采用 **分段的数组+链表** 实现，JDK1.8 采用的数据结构跟 `HashMap1.8` 的结构一样，数组+链表/红黑二叉树。`Hashtable` 和 JDK1.8 之前的 `HashMap` 的底层数据结构类似都是采用 **数组+链表** 的形式，数组是 HashMap 的主体，链表则是主要为了解决哈希冲突而存在的；
+- **实现线程安全的方式（重要）：** ① **在 JDK1.7 的时候，`ConcurrentHashMap`（分段锁）** 对整个桶数组进行了分割分段(`Segment`)，每一把锁只锁容器其中一部分数据，多线程访问容器里不同数据段的数据，就不会存在锁竞争，提高并发访问率。 **到了 JDK1.8 的时候已经摒弃了 `Segment` 的概念，而是直接用 `Node` 数组+链表+红黑树的数据结构来实现，并发控制使用 `synchronized` 和 CAS 来操作。（JDK1.6 以后 对 `synchronized` 锁做了很多优化）** 整个看起来就像是优化过且线程安全的 `HashMap`，虽然在 JDK1.8 中还能看到 `Segment` 的数据结构，但是已经简化了属性，只是为了兼容旧版本；② **`Hashtable`(同一把锁)** :使用 `synchronized` 来保证线程安全，效率非常低下。当一个线程访问同步方法时，其他线程也访问同步方法，可能会进入阻塞或轮询状态，如使用 put 添加元素，另一个线程不能使用 put 添加元素，也不能使用 get，竞争会越来越激烈效率越低。
 
 **两者的对比图：**
 
@@ -610,22 +549,22 @@ JDK1.8 的 `ConcurrentHashMap` 不在是 **Segment 数组 + HashEntry 数组 + �
 
 首先将数据分为一段一段的存储，然后给每一段数据配一把锁，当一个线程占用锁访问其中一个段数据时，其他段的数据也能被其他线程访问。
 
-**ConcurrentHashMap 是由 Segment 数组结构和 HashEntry 数组结构组成**。
+**`ConcurrentHashMap` 是由 `Segment` 数组结构和 `HashEntry` 数组结构组成**。
 
-Segment 实现了 ReentrantLock,所以 Segment 是一种可重入锁，扮演锁的角色。HashEntry 用于存储键值对数据。
+Segment 实现了 `ReentrantLock`,所以 `Segment` 是一种可重入锁，扮演锁的角色。`HashEntry` 用于存储键值对数据。
 
 ```java
 static class Segment<K,V> extends ReentrantLock implements Serializable {
 }
 ```
 
-一个 ConcurrentHashMap 里包含一个 Segment 数组。Segment 的结构和 HashMap 类似，是一种数组和链表结构，一个 Segment 包含一个 HashEntry 数组，每个 HashEntry 是一个链表结构的元素，每个 Segment 守护着一个 HashEntry 数组里的元素，当对 HashEntry 数组的数据进行修改时，必须首先获得对应的 Segment 的锁。
+一个 `ConcurrentHashMap` 里包含一个 `Segment` 数组。`Segment` 的结构和 `HashMap` 类似，是一种数组和链表结构，一个 `Segment` 包含一个 `HashEntry` 数组，每个 `HashEntry` 是一个链表结构的元素，每个 `Segment` 守护着一个 `HashEntry` 数组里的元素，当对 `HashEntry` 数组的数据进行修改时，必须首先获得对应的 `Segment` 的锁。
 
 #### 1.4.10.2. JDK1.8 （上面有示意图）
 
-ConcurrentHashMap 取消了 Segment 分段锁，采用 CAS 和 synchronized 来保证并发安全。数据结构跟 HashMap1.8 的结构类似，数组+链表/红黑二叉树。Java 8 在链表长度超过一定阈值（8）时将链表（寻址时间复杂度为 O(N)）转换为红黑树（寻址时间复杂度为 O(log(N))）
+`ConcurrentHashMap` 取消了 `Segment` 分段锁，采用 CAS 和 `synchronized` 来保证并发安全。数据结构跟 HashMap1.8 的结构类似，数组+链表/红黑二叉树。Java 8 在链表长度超过一定阈值（8）时将链表（寻址时间复杂度为 O(N)）转换为红黑树（寻址时间复杂度为 O(log(N))）
 
-synchronized 只锁定当前链表或红黑二叉树的首节点，这样只要 hash 不冲突，就不会产生并发，效率又提升 N 倍。
+`synchronized` 只锁定当前链表或红黑二叉树的首节点，这样只要 hash 不冲突，就不会产生并发，效率又提升 N 倍。
 
 ## 1.5. Collections 工具类
 
@@ -673,170 +612,6 @@ synchronizedCollection(Collection<T>  c) //返回指定 collection 支持的同�
 synchronizedList(List<T> list)//返回指定列表支持的同步（线程安全的）List。
 synchronizedMap(Map<K,V> m) //返回由指定映射支持的同步（线程安全的）Map。
 synchronizedSet(Set<T> s) //返回指定 set 支持的同步（线程安全的）set。
-```
-
-## 1.6. 其他重要问题
-
-### 1.6.1. 什么是快速失败(fail-fast)？
-
-**快速失败(fail-fast)** 是 Java 集合的一种错误检测机制。**在使用迭代器对集合进行遍历的时候，我们在多线程下操作非安全失败(fail-safe)的集合类可能就会触发 fail-fast 机制，导致抛出 `ConcurrentModificationException` 异常。 另外，在单线程下，如果在遍历过程中对集合对象的内容进行了修改的话也会触发 fail-fast 机制。**
-
-> 注：增强 for 循环也是借助迭代器进行遍历。
-
-举个例子：多线程下，如果线程 1 正在对集合进行遍历，此时线程 2 对集合进行修改（增加、删除、修改），或者线程 1 在遍历过程中对集合进行修改，都会导致线程 1 抛出 `ConcurrentModificationException` 异常。
-
-**为什么呢？**
-
-每当迭代器使用 `hashNext()`/`next()`遍历下一个元素之前，都会检测 `modCount` 变量是否为 `expectedModCount` 值，是的话就返回遍历；否则抛出异常，终止遍历。
-
-如果我们在集合被遍历期间对其进行修改的话，就会改变 `modCount` 的值，进而导致 `modCount != expectedModCount` ，进而抛出 `ConcurrentModificationException` 异常。
-
-> 注：通过 `Iterator` 的方法修改集合的话会修改到 `expectedModCount` 的值，所以不会抛出异常。
-
-```java
-final void checkForComodification() {
-    if (modCount != expectedModCount)
-        throw new ConcurrentModificationException();
-}
-```
-
-好吧！相信大家已经搞懂了快速失败(fail-fast)机制以及它的原理。
-
-我们再来趁热打铁，看一个阿里巴巴手册相关的规定：
-
-![](images/ad28e3ba-e419-4724-869c-73879e604da1.png)
-
-有了前面讲的基础，我们应该知道：使用 `Iterator` 提供的 `remove` 方法，可以修改到 `expectedModCount` 的值。所以，才不会再抛出`ConcurrentModificationException` 异常。
-
-### 1.6.2. 什么是安全失败(fail-safe)呢？
-
-明白了快速失败(fail-fast)之后，安全失败(fail-safe)我们就很好理解了。
-
-采用安全失败机制的集合容器，在遍历时不是直接在集合内容上访问的，而是先复制原有集合内容，在拷贝的集合上进行遍历。所以，在遍历过程中对原集合所作的修改并不能被迭代器检测到，故不会抛 `ConcurrentModificationException` 异常。
-
-### 1.6.3. Arrays.asList()避坑指南
-
-最近使用`Arrays.asList()`遇到了一些坑，然后在网上看到这篇文章：[Java Array to List Examples](http://javadevnotes.com/java-array-to-list-examples) 感觉挺不错的，但是还不是特别全面。所以，自己对于这块小知识点进行了简单的总结。
-
-#### 1.6.3.1. 简介
-
-`Arrays.asList()`在平时开发中还是比较常见的，我们可以使用它将一个数组转换为一个 List 集合。
-
-```java
-String[] myArray = { "Apple", "Banana", "Orange" }；
-List<String> myList = Arrays.asList(myArray);
-//上面两个语句等价于下面一条语句
-List<String> myList = Arrays.asList("Apple","Banana", "Orange");
-```
-
-JDK 源码对于这个方法的说明：
-
-```java
-/**
- *返回由指定数组支持的固定大小的列表。此方法作为基于数组和基于集合的API之间的桥梁，与           Collection.toArray()结合使用。返回的List是可序列化并实现RandomAccess接口。
- */
-public static <T> List<T> asList(T... a) {
-    return new ArrayList<>(a);
-}
-```
-
-#### 1.6.3.2. 《阿里巴巴 Java 开发手册》对其的描述
-
-`Arrays.asList()`将数组转换为集合后,底层其实还是数组，《阿里巴巴 Java 开发手册》对于这个方法有如下描述：
-
-![阿里巴巴Java开发手-Arrays.asList()方法](<https://my-blog-to-use.oss-cn-beijing.aliyuncs.com/2019-6/阿里巴巴Java开发手-Arrays.asList()方法.png>)
-
-#### 1.6.3.3. 使用时的注意事项总结
-
-**传递的数组必须是对象数组，而不是基本类型。**
-
-`Arrays.asList()`是泛型方法，传入的对象必须是对象数组。
-
-```java
-int[] myArray = { 1, 2, 3 };
-List myList = Arrays.asList(myArray);
-System.out.println(myList.size());//1
-System.out.println(myList.get(0));//数组地址值
-System.out.println(myList.get(1));//报错：ArrayIndexOutOfBoundsException
-int [] array=(int[]) myList.get(0);
-System.out.println(array[0]);//1
-```
-
-当传入一个原生数据类型数组时，`Arrays.asList()` 的真正得到的参数就不是数组中的元素，而是数组对象本身！此时 List 的唯一元素就是这个数组，这也就解释了上面的代码。
-
-我们使用包装类型数组就可以解决这个问题。
-
-```java
-Integer[] myArray = { 1, 2, 3 };
-```
-
-**使用集合的修改方法:`add()`、`remove()`、`clear()`会抛出异常。**
-
-```java
-List myList = Arrays.asList(1, 2, 3);
-myList.add(4);//运行时报错：UnsupportedOperationException
-myList.remove(1);//运行时报错：UnsupportedOperationException
-myList.clear();//运行时报错：UnsupportedOperationException
-```
-
-`Arrays.asList()` 方法返回的并不是 `java.util.ArrayList` ，而是 `java.util.Arrays` 的一个内部类,这个内部类并没有实现集合的修改方法或者说并没有重写这些方法。
-
-```java
-List myList = Arrays.asList(1, 2, 3);
-System.out.println(myList.getClass());//class java.util.Arrays$ArrayList
-```
-
-下图是`java.util.Arrays$ArrayList`的简易源码，我们可以看到这个类重写的方法有哪些。
-
-```java
-  private static class ArrayList<E> extends AbstractList<E>
-        implements RandomAccess, java.io.Serializable
-    {
-        ...
-
-        @Override
-        public E get(int index) {
-          ...
-        }
-
-        @Override
-        public E set(int index, E element) {
-          ...
-        }
-
-        @Override
-        public int indexOf(Object o) {
-          ...
-        }
-
-        @Override
-        public boolean contains(Object o) {
-           ...
-        }
-
-        @Override
-        public void forEach(Consumer<? super E> action) {
-          ...
-        }
-
-        @Override
-        public void replaceAll(UnaryOperator<E> operator) {
-          ...
-        }
-
-        @Override
-        public void sort(Comparator<? super E> c) {
-          ...
-        }
-    }
-```
-
-我们再看一下`java.util.AbstractList`的`remove()`方法，这样我们就明白为啥会抛出`UnsupportedOperationException`。
-
-```java
-public E remove(int index) {
-    throw new UnsupportedOperationException();
-}
 ```
 
 
